@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "header_files/matrixMultiplication.h"
 #include "header_files/hiddenGateBias.h"
 #include "header_files/hiddenGateWeights.h"
