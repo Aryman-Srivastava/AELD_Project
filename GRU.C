@@ -22,6 +22,7 @@
 #define VAR1 104
 #define VAR2 48
 #define VAR3 52
+#define VAR4 96
 #define FRAME_SIZE 5
 #define SNR_SIZE 8
 
@@ -68,12 +69,19 @@ void ht_new(float z[VAR2], float ht_1[VAR2], float n[VAR2], float ht[VAR2]) {
     }
 }
 
+void linear_layer(float W[VAR4][VAR2], float n[VAR2], float b[VAR4], float y[VAR4]) {
+    multiplyMatrixVector(W, n, y);
+    for(int i = 0; i < VAR3; i++){
+        y[i] += b[i];
+    }
+}
 
 void GRU() {
     // Sample usage
     float ht[VAR1], r[VAR2];
     float z[VAR2];
     float ht_1[VAR1], n[VAR2];
+    float output_gru[FRAME_SIZE][VAR4];
 
     // Initialize matrices and vectors
     for(int i = 0; i < VAR2; i++){
@@ -93,6 +101,7 @@ void GRU() {
             updateGate(ugiw, input_0[i], ugib, ughw, ht, ughb, z);
             tanh_layer(tgiw, input_0[i], tgib, r, tghw, ht_1, tghb, n);
             ht_new(z, ht_1, n, ht);
+            linear_layer(outWeight, n, outBias, output_gru[i]);
     }
 
     // Use the results as needed
