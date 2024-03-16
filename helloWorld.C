@@ -141,8 +141,8 @@ void demapping(float complex yeq[VAR2], float complex d[VAR3]){
 
 }
 
-void estimate_LS(float complex yd[VAR2], float complex d[VAR3], float complex hdpa[VAR2]){
-    for(int i=0;i<VAR2;i++){
+void estimate_LS(float complex yd[VAR3], float complex d[VAR3], float complex hdpa[VAR3]){
+    for(int i=0;i<VAR3;i++){
         hdpa[i] = crealf(yd[i]) / crealf(d[i]) + I * cimagf(yd[i]) / cimagf(d[i]);
     }
 }
@@ -215,7 +215,7 @@ void GRU() {
 
 	            demapping(yeq, d); // hDPA_complex is now updated
 
-                estimate_LS(yd, hDPA_complex);
+                estimate_LS(yd, d, hDPA_complex);
 
 	            k=0;
 	            for(int j=0;j<VAR3;j++){
