@@ -6,7 +6,7 @@
 #include "header_files/hiddenGateWeights.h"
 #include "header_files/inputGateBias.h"
 #include "header_files/inputGateWeights.h"
-#include "header_files/linearLayerBias.h"
+#include "header_files/linearLayerbias.h"
 #include "header_files/linearLayerWeight.h"
 #include "header_files/input_0.h"
 #include "header_files/input_5.h"

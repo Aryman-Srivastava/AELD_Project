@@ -110,7 +110,8 @@ void equalizer(float yd_real [VAR4], float hprev[VAR4], int i, float complex yeq
     }
 }
 
-void demapping(float complex yeq[VAR2], float complex d[VAR3], float complex yd_real[VAR3], float complex hdpa[VAR3]){
+
+void demapping(float complex yeq[VAR2], float complex d[VAR3]){
     int k=0;
     for(int i=0;i<VAR3;i++){
         if(i==6 || i==20 || i==31){
@@ -137,11 +138,13 @@ void demapping(float complex yeq[VAR2], float complex d[VAR3], float complex yd_
         d[i] = d[i] * 0.707;
 
     }
-    for(int i=0;i<VAR3;i++){
-        hdpa[i] = yd_real[i] / d[i];
 
+}
+
+void estimate_LS(float complex yd[VAR2], float complex d[VAR3], float complex hdpa[VAR2]){
+    for(int i=0;i<VAR2;i++){
+        hdpa[i] = crealf(yd[i]) / crealf(d[i]) + I * cimagf(yd[i]) / cimagf(d[i]);
     }
-
 }
 
 void GRU() {
@@ -150,7 +153,7 @@ void GRU() {
     float z[VAR2];
     float ht_1[VAR2], n[VAR2], output_gru[FRAME_SIZE][VAR4];
     float yd_real[VAR4]; // Data symbol in 96X1
-    float complex yd[VAR2]; // Data symbol in 48X1 complex values
+    float complex yd[VAR3]; // Data symbol in 48X1 complex values
     float complex d[VAR3]; // Complex data nearest to the reference symbol (Demodulated Output)
     float complex hDPA_complex[VAR3];
     float hLS[VAR1], hLS_D[VAR4], hDPA[VAR1];
@@ -192,10 +195,10 @@ void GRU() {
     			if (j != 6 && j != 20 && j != 31 && j != 45) {
                     yd_real[k] = (float)crealf(y_df_0[i][iter][j]);
                     yd_real[k+1] = (float)cimagf(y_df_0[i][iter][j]);
-                    yd[m] = y_df_0[i][iter][j];
                     k+=2;
-                    m++;
     			}
+                yd[m] = y_df_0[i][iter][j];
+                m++;
              }
             k=0,m=0;
 
@@ -210,7 +213,9 @@ void GRU() {
 				}
 	            equalizer(yd_real, hLS , i, yeq); // Gives yEqualized output of size 48X1 Complex values
 
-	            demapping(yeq, d, yd, hDPA_complex); // hDPA_complex is now updated
+	            demapping(yeq, d); // hDPA_complex is now updated
+
+                estimate_LS(yd, hDPA_complex);
 
 	            k=0;
 	            for(int j=0;j<VAR3;j++){
@@ -238,7 +243,9 @@ void GRU() {
 				}
 	            equalizer(yd_real, output_gru[i], i, yeq); // Gives yEqualized output of size 48X1 Complex values
 
-	            demapping(yeq, d, yd, hDPA_complex); // hDPA_complex is now updated
+	            demapping(yeq, d); // hDPA_complex is now updated
+
+                estimate_LS(yd, d, hDPA_complex);
 
 	            k=0;
 	            for(int j=0;j<VAR3;j++){
