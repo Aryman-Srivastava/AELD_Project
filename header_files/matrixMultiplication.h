@@ -5,6 +5,7 @@
 #define VAR1 104
 #define VAR2 48
 #define VAR3 52
+#define VAR4 96
 
 // Function to perform matrix-vector multiplication
 void multiplyMatrixVector(float matrix[VAR2][VAR1], float vector[VAR1], float result[VAR2]) {
@@ -19,7 +20,15 @@ void multiplyMatrixVector(float matrix[VAR2][VAR1], float vector[VAR1], float re
 void multiplyMatrixVector2(float matrix[VAR2][VAR2], float vector[VAR2], float result[VAR2]) {
     for (int i = 0; i < VAR2; i++) {
         result[i] = 0;
-        for (int j = 0; j < VAR1; j++) {
+        for (int j = 0; j < VAR2; j++) {
+            result[i] += matrix[i][j] * vector[j];
+        }
+    }
+}
+void multiplyMatrixVector3(float matrix[VAR4][VAR2], float vector[VAR2], float result[VAR2]) {
+    for (int i = 0; i < VAR4; i++) {
+        result[i] = 0;
+        for (int j = 0; j < VAR2; j++) {
             result[i] += matrix[i][j] * vector[j];
         }
     }
@@ -38,13 +47,3 @@ void multiplyVectors(float vector1[VAR2], float vector2[VAR2], float result[VAR2
         result[i] = vector1[i] * vector2[i];
     }
 }
-
-
-
-
-
-
-
-
-
-
