@@ -99,7 +99,7 @@ void ht_new(float z[VAR2], float ht_1[VAR2], float n[VAR2], float ht[VAR2]) {
 
 void linear_layer(float W[VAR4][VAR2], float n[VAR2], float b[VAR4], float y[VAR4]) {
     multiplyMatrixVector3(W, n, y);
-    for(int i = 0; i < VAR3; i++){
+    for(int i = 0; i < VAR4; i++){
         y[i] += b[i];
     }
 }
@@ -154,12 +154,16 @@ void GRU() {
     float complex d[VAR3]; // Complex data nearest to the reference symbol (Demodulated Output)
     float complex hDPA_complex[VAR3];
     float hLS[VAR1], hLS_D[VAR4], hDPA[VAR1];
+    float hprev[VAR1];
     float complex yeq[VAR2];
     int iter;
 
+    for(int i=0;i<VAR2;i++){
+    	ht[i]=0;
+    	ht_1[i]=0;
+    }
+
     for(int i = 0; i < VAR1; i++){
-        ht[i] = 0;
-        ht_1[i] = 0;
         hLS[i]=0;
         hDPA[i] = 0;
     }
@@ -193,41 +197,64 @@ void GRU() {
                     m++;
     			}
              }
-
+            k=0,m=0;
 
             if(iter==0){
 				resetGate(rgiw, hLS, rgib, rghw, ht_1, rghb, r);
 				updateGate(ugiw, hLS, ugib, ughw, ht_1, ughb, z);
 				tanh_layer(tgiw, hLS, tgib, r, tghw, ht_1, tghb, n);
+				ht_new(z, ht_1, n, ht);
+				linear_layer(outWeight, n, outBias, output_gru[i]);
+				for(k=0;k<VAR2;k++){
+					ht_1[k] = ht[k];
+				}
+	            equalizer(yd_real, hLS , i, yeq); // Gives yEqualized output of size 48X1 Complex values
+
+	            demapping(yeq, d, yd, hDPA_complex); // hDPA_complex is now updated
+
+	            k=0;
+	            for(int j=0;j<VAR3;j++){
+	            	hDPA[k] = (float)crealf(hDPA_complex[j]);
+	                hDPA[k+1] = (float)cimagf(hDPA_complex[j]);
+	                k+=2;
+	            }
+
+	            // Time Averaging
+
+	            for(int j=0;j<VAR1;j++){
+	            	hprev[j] = 0.5*hLS[j] + 0.5*hDPA[j];
+	            }
+
+
             }
             else{
-				resetGate(rgiw, hDPA, rgib, rghw, ht_1, rghb, r);
-				updateGate(ugiw, hDPA, ugib, ughw, ht_1, ughb, z);
-				tanh_layer(tgiw, hDPA, tgib, r, tghw, ht_1, tghb, n);
+				resetGate(rgiw, hprev, rgib, rghw, ht_1, rghb, r);
+				updateGate(ugiw, hprev, ugib, ughw, ht_1, ughb, z);
+				tanh_layer(tgiw, hprev, tgib, r, tghw, ht_1, tghb, n);
+				ht_new(z, ht_1, n, ht);
+				linear_layer(outWeight, n, outBias, output_gru[i]);
+				for(k=0;k<VAR2;k++){
+					ht_1[k] = ht[k];
+				}
+	            equalizer(yd_real, output_gru[i], i, yeq); // Gives yEqualized output of size 48X1 Complex values
+
+	            demapping(yeq, d, yd, hDPA_complex); // hDPA_complex is now updated
+
+	            k=0;
+	            for(int j=0;j<VAR3;j++){
+	            	hDPA[k] = (float)crealf(hDPA_complex[j]);
+	                hDPA[k+1] = (float)cimagf(hDPA_complex[j]);
+	                k+=2;
+	             }
+	            // Time Averaging
+
+	            for(int j=0;j<VAR1;j++){
+	            	hprev[j] = 0.5*hDPA[j] + 0.5*hprev[j];
+	            }
+	            printf("TA Done, hprev Updated");
+
             }
 
-			ht_new(z, ht_1, n, ht);
-
-			for(k=0;k<VAR2;k++){
-				ht_1[k] = ht[k];
-			}
-
-			linear_layer(outWeight, n, outBias, output_gru[i]);
-
-            equalizer(yd_real, output_gru[i], i, yeq); // Gives yEqualized output of size 48X1 Complex values
-
-            demapping(yeq, d, yd, hDPA_complex); // hDPA_complex is now updated
-
-            k=0;
-            for(int j=0;j<VAR3;j++){
-            	hDPA[k] = (float)crealf(hDPA_complex[j]);
-                hDPA[k+1] = (float)cimagf(hDPA_complex[j]);
-                k+=2;
-             }
-
-
-            // Time Averaging
-            printf("TA Not Done, Wrong Answer");
 
         }
         printf("All Iterations Done.");
