@@ -224,10 +224,10 @@ void GRU() {
         int k = 0;
 		for (int j = 0; j < VAR_104; j++) {
 			if (j != 6 && j != 20 && j != 31 && j != 45 && j != 58 && j != 72 && j != 83 && j != 97) {
-				hLS_D[k] = input_0[i][j];
+				hLS_D[k] = input_40[i][j];
 				k++;
 			}
-			hLS[j] = input_0[i][j];
+			hLS[j] = input_40[i][j];
 
 		}
 
@@ -236,7 +236,7 @@ void GRU() {
     		k=0;
     		int m=0;
     		for(int j=0;j<VAR_52;j++){
-    			yd[j] = y_df_0[i][iter][j];
+    			yd[j] = y_df_40[i][iter][j];
     		}
 
             for(int j=0;j<VAR_52;j++){
@@ -250,7 +250,7 @@ void GRU() {
             		continue;
             	}
             	else{
-            		yd_dsym[k] = crealf(y_df_0[i][iter][j]) + I*cimagf(y_df_0[i][iter][j]);
+            		yd_dsym[k] = crealf(y_df_40[i][iter][j]) + I*cimagf(y_df_40[i][iter][j]);
             		k++;
             	}
 
@@ -306,12 +306,12 @@ void GRU() {
 	                hDPA[j+52] = (float)cimagf(hDPA_complex[j]);
 	             }
 	            // Time Averaging
-
+	            printf("previous channel estimate = ");
 	            for(int j=0;j<VAR_104;j++){
 	            	hprev[j] = 0.5*hDPA[j] + 0.5*hprev[j];
+		            printf("%f, ", hprev[j]);
 	            }
-	            printf("TA Done, hprev Updated");
-
+	            printf("TA Done, hprev Updated\n");
             }
 
         }
