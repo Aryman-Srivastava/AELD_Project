@@ -1,0 +1,150 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include "helper.h"
+#include "weights.h"
+
+#ifdef solution1
+void GRU(hls::stream<axis_data> &hls, hls::stream<axis_data> &output_data){
+	#pragma HLS INTERFACE ap_ctrl_none port=return
+	#pragma HLS INTERFACE axis register both port=output_data
+	#pragma HLS INTERFACE axis register both port=hls
+//	#pragma HLS ARRAY_PARTITION variable=ugiw block factor=104 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=rgiw block factor=104 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=tgiw block factor=104 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=rghw block factor=48 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=ughw block factor=48 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=tghw block factor=48 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=rghb block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=ughb block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=tghb block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=rgib block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=ugib block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=tgib block factor=48 dim=1
+
+//	#pragma HLS ARRAY_PARTITION variable=outWeight block factor=48 dim=2
+
+	float hls_data[VAR_104], ht[VAR_48];
+//	#pragma HLS ARRAY_PARTITION variable=hls_data complete dim=1
+
+	float GRU_output[VAR_48];
+//	#pragma HLS ARRAY_PARTITION variable=GRU_output complete dim=1
+	float ll_output[VAR_96];
+
+	float r[VAR_48], z[VAR_48], n[VAR_48];
+//	#pragma HLS ARRAY_PARTITION variable=n block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=z block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=r block factor=48 dim=1
+	axis_data local_stream;
+	int i;
+	streamloop1: for(i=0;i<VAR_104;i++){
+	#pragma HLS PIPELINE
+		local_stream = hls.read();
+		float temp = local_stream.data;
+		hls_data[i] = temp;
+	}
+
+	streamloop2: for(i=0;i<VAR_48;i++){
+	#pragma HLS PIPELINE
+		local_stream = hls.read();
+		ht[i] = local_stream.data;
+	}
+
+	resetGate(rgiw, hls_data, rgib, rghw, ht, rghb, r);
+	updateGate(ugiw, hls_data, ugib, ughw, ht, ughb, z);
+	tanh_layer(tgiw, hls_data, tgib, r, tghw, ht, tghb, n);
+	ht_new(z, ht, n, GRU_output);
+	linear_layer(outWeight, GRU_output, outBias, ll_output);
+
+	streamloop3: for(i=0;i<VAR_96;i++){
+	#pragma HLS PIPELINE
+		local_stream.data = ll_output[i];
+		local_stream.last = 0;
+		output_data.write(local_stream);
+	}
+	streamloop4: for(i=0;i<VAR_48;i++){
+	#pragma HLS PIPELINE
+
+		local_stream.data = GRU_output[i];
+		if(i == VAR_48-1){
+			local_stream.last = 1;
+		}
+		else{
+			local_stream.last = 0;
+		}
+		output_data.write(local_stream);
+	}
+}
+#endif
+
+#ifdef solution2
+void GRU_MM(float *hls, float *output_data){
+
+	#pragma HLS INTERFACE s_axilite port=return
+
+	#pragma HLS INTERFACE m_axi depth=152 port=hls offset=slave
+	#pragma HLS INTERFACE m_axi depth=144 port=output_data offset=slave
+//	#pragma HLS ARRAY_PARTITION variable=ugiw block factor=104 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=rgiw block factor=104 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=tgiw block factor=104 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=rghw block factor=48 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=ughw block factor=48 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=tghw block factor=48 dim=2
+//	#pragma HLS ARRAY_PARTITION variable=rghb block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=ughb block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=tghb block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=rgib block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=ugib block factor=48 dim=1
+//	#pragma HLS ARRAY_PARTITION variable=tgib block factor=48 dim=1
+
+//	#pragma HLS ARRAY_PARTITION variable=outWeight block factor=48 dim=2
+	float temp_data[152];
+//	#pragma HLS ARRAY_PARTITION variable=temp_data cyclic factor=2 dim=1
+	float temp_data_out[144];
+	#pragma HLS ARRAY_PARTITION variable=temp_data_out cyclic factor=2 dim=1
+	float hls_data[VAR_104], ht[VAR_48];
+	#pragma HLS ARRAY_PARTITION variable=ht cyclic factor=4 dim=1
+	#pragma HLS ARRAY_PARTITION variable=hls_data cyclic factor=2 dim=1
+
+
+	float GRU_output[VAR_48];
+	#pragma HLS ARRAY_PARTITION variable=GRU_output cyclic factor=8 dim=1
+
+	float ll_output[VAR_96];
+
+	float r[VAR_48], z[VAR_48], n[VAR_48];
+
+    memcpy(temp_data, (const Mat_Dtype*)hls, 152*sizeof(Mat_Dtype));
+
+	int i;
+	streamloop1: for(i=0;i<VAR_104;i++){
+	#pragma HLS PIPELINE
+		hls_data[i] = temp_data[i];
+	}
+
+	streamloop2: for(i=0;i<VAR_48;i++){
+	#pragma HLS PIPELINE
+		ht[i] = temp_data[i+104];
+	}
+
+	resetGate(rgiw, hls_data, rgib, rghw, ht, rghb, r);
+	updateGate(ugiw, hls_data, ugib, ughw, ht, ughb, z);
+	tanh_layer(tgiw, hls_data, tgib, r, tghw, ht, tghb, n);
+	ht_new(z, ht, n, GRU_output);
+	linear_layer(outWeight, GRU_output, outBias, ll_output);
+
+	output:for(int j=0;j<144;j++){
+		if(j<96){
+			temp_data_out[j] = ll_output[j];
+		}
+		else{
+			temp_data_out[j] = GRU_output[j-96];
+
+		}
+	}
+    memcpy( output_data,(const Mat_Dtype*)temp_data_out, 144*sizeof(Mat_Dtype));
+
+
+}
+#endif
